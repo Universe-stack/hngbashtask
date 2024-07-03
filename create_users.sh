@@ -26,7 +26,7 @@ while IFS=';' read -r username groups; do
 
   echo "Processing user: $username" | tee -a $LOG_FILE
 
-  # Create the personal group for the user
+  # Create the personal group for the user if it doesn't exist
   if ! getent group "$username" > /dev/null 2>&1; then
     sudo groupadd "$username"
     echo "Group $username created" | tee -a $LOG_FILE
@@ -50,7 +50,7 @@ while IFS=';' read -r username groups; do
   # Join the group array into a comma-separated string
   additional_groups=$(IFS=','; echo "${group_array[*]}")
 
-  # Create the user
+  # Create the user if they don't exist
   if ! id -u "$username" > /dev/null 2>&1; then
     sudo useradd -m -g "$username" -G "$additional_groups" "$username" &>/dev/null
     if [[ $? -eq 0 ]]; then
@@ -77,6 +77,10 @@ while IFS=';' read -r username groups; do
     fi
   else
     echo "User $username already exists" | tee -a $LOG_FILE
+
+    # Add the user to the additional groups
+    sudo usermod -aG "$additional_groups" "$username"
+    echo "User $username added to groups: $additional_groups" | tee -a $LOG_FILE
   fi
 
 done < "$USER_LIST"
